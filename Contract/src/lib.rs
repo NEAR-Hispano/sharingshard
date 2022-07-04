@@ -1,4 +1,3 @@
-//#[warn(snake_case)]
 use near_sdk::{env, near_bindgen, AccountId, Balance, PanicOnDefault, Promise};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, Vector};
@@ -419,6 +418,40 @@ impl Contract {
     pub fn get_number_of_experiences(&self) ->u128{
         self.n_exp
     }
+
+/*
+** Deleters
+*/
+
+    pub fn delete_experience(&mut self, video_n: u128){
+        //self.verify_exp(video_n.clone());
+        let user = env::signer_account_id();
+        self.verify_user(user.clone());
+        self.verify_exp_status(video_n.clone(), "In process".to_string());
+        self.verify_exp_owner(video_n.clone(), user.clone());
+        let it = self.users.get(&user.clone()).unwrap().my_exp.to_vec();
+        let mut i = 0;
+        while it[i] != video_n {
+            i += 1;
+        }
+        self.experience.remove(&video_n.clone());
+        self.users.get(&user.clone()).unwrap().my_exp.swap_remove(i as u64);
+    }
+
+    pub fn delete_pov(&mut self, video_n: u128) {
+        let user = env::signer_account_id();
+        self.verify_user(user.clone());
+        self.verify_exp_status(video_n.clone(), "Active".to_string());
+        assert_ne!(self.experience.get(&video_n.clone()).unwrap().pov.get(&user.clone()), None,
+        "User has not given a pov for this experience");
+        self.experience.get(&video_n.clone()).unwrap().pov.remove(&user.clone());
+        let it = self.users.get(&user.clone()).unwrap().pov_exp.to_vec();
+        let mut i = 0;
+        while it[i] != video_n {
+            i += 1;
+        }
+        self.users.get(&user.clone()).unwrap().pov_exp.swap_remove(i as u64);
+    }
 /*
 ** Verifiers
 */
@@ -430,6 +463,12 @@ impl Contract {
     fn verify_exp_owner(&self, video_n: u128, wallet: AccountId){
         assert_eq!(self.experience.get(&video_n.clone()).unwrap().owner.clone(),
         wallet.clone(), "{} is not the owner of the experience", wallet.clone());
+    }
+
+    fn verify_exp_status(&self, video_n: u128, status: String) {
+        self.verify_exp(video_n.clone());
+        let exp = self.experience.get(&video_n.clone()).unwrap().status;
+        assert_eq!(exp, status, "Experience number {} not {}", video_n, status);
     }
 
     fn verify_user(&self, wallet: AccountId){
@@ -533,9 +572,10 @@ mod tests {
         contract.set_pov(1, "bob.testnet".parse().unwrap(), "first pov".to_string());
         let bob_exp = contract.get_user_exp("bob.testnet".parse().unwrap());
         contract.set_pov(bob_exp[0].clone(), "pepe.testnet".parse().unwrap(), "second pov".to_string());
+        contract.delete_pov(bob_exp[0].clone());
         let exp_tmp = contract.get_experience(1);
         // let usr_tmp = contract.get_user(id.clone());
-        // println!("{:?}", usr_tmp);
+        println!("{:?}", rew);
         println!("{:?}", exp_tmp);      
         // let exp = contract.set_experience(
         // "experience 2".to_string(),
