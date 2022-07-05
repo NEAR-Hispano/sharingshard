@@ -76,9 +76,15 @@ pub struct Contract{
 }
 
 /*
-** Functions
+** Enums
 */
-
+/*
+#[derive(BorshSerialize)]
+ enum StorageKey {
+    FungibleToken,
+    Metadata { sub_key: String },
+}
+*/
 /*
 ** Initialization
 */
@@ -88,9 +94,9 @@ impl Contract {
     pub fn new() -> Self {
         assert!(env::state_read::<Self>().is_none(), "Already initialized");
         Self{
-            users: LookupMap::new(b"m"),
-            experience: LookupMap::new(b"m"),
-            exp_by_topic: LookupMap::new(b"m"),
+            users: LookupMap::new(b"a"),
+            experience: LookupMap::new(b"b"),
+            exp_by_topic: LookupMap::new(b"c"),
             n_exp: 0,
             ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
         }
@@ -124,20 +130,20 @@ impl Contract {
 /*
 ** Setters
 */
-    //#[derive(BorshStorageKey)]
-    pub fn set_user(&mut self,
-        wallet: AccountId,
+    pub fn set_user(
+        &mut self,
         n: String,
         disc: String,
         mail: String,
-        interests: u8){
+        interests: u8) {
+        let wallet = env::signer_account_id();
         assert!(!self.users.contains_key(&wallet.clone()), "User already exists");
         self.users.insert(&wallet.clone(), &User{name: n,
             discord: disc,
             email: mail,
             interests: interests,
-            my_exp: Vector::new(b"m"),
-            pov_exp: Vector::new(b"m"),
+            my_exp: Vector::new(b"d"),
+            pov_exp: Vector::new(b"e"),
             date: 0});
     }
 
@@ -157,7 +163,7 @@ impl Contract {
         self.users.insert(&wallet, &user);
     }
     
-    pub fn set_user_interests(&mut self, interests: u8){
+    pub fn set_user_interests(&mut self, interests: u8) {
         let wallet = env::signer_account_id();
         self.verify_user(wallet.clone());
         let mut user = self.users.get(&wallet.clone()).unwrap();
@@ -165,7 +171,7 @@ impl Contract {
         self.users.insert(&wallet, &user);
     }
 
-    pub fn set_user_name(&mut self, name: String){
+    pub fn set_user_name(&mut self, name: String) {
         let wallet = env::signer_account_id();
         self.verify_user(wallet.clone());
         let mut user = self.users.get(&wallet.clone()).unwrap();
@@ -182,7 +188,7 @@ impl Contract {
         moment: String,
         time: u16,
         expire_date: i64,
-        topic: u8) ->u128{
+        topic: u8) ->u128 {
         self.verify_user(env::signer_account_id());
         let mut stat = "In process".to_string();
         if env::attached_deposit() > 0 {
@@ -201,7 +207,7 @@ impl Contract {
             reward: reward,
             moment: moment,
             time : time,
-            pov: UnorderedMap::new(b"m"),
+            pov: UnorderedMap::new(&[self.n_exp as u8;1]),
             topic: topic.clone(),
             exp_date: expire_date,
             status: stat});
@@ -273,8 +279,10 @@ impl Contract {
         env::signer_account_id());
     }
 
-    pub fn set_pov(&mut self, video_n: u128, wallet: AccountId, pov: String){
-        self.verify_exp(video_n.clone());
+    pub fn set_pov(&mut self, video_n: u128, pov: String) {
+        let wallet = env::signer_account_id();
+        // self.verify_exp(video_n.clone());
+        self.verify_exp_status(video_n.clone(), "Active".to_string());
         self.verify_user(wallet.clone());
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         assert_eq!(exp.pov.get(&wallet.clone()), None,
@@ -424,7 +432,6 @@ impl Contract {
 */
 
     pub fn delete_experience(&mut self, video_n: u128){
-        //self.verify_exp(video_n.clone());
         let user = env::signer_account_id();
         self.verify_user(user.clone());
         self.verify_exp_status(video_n.clone(), "In process".to_string());
@@ -475,17 +482,6 @@ impl Contract {
         assert!(self.users.contains_key(&wallet.clone()),"No user for this wallet: {}", wallet);
     }
 }
-/*
-fn main() {
-
-    //contract.set_moment(id2.clone(), exp.clone(), 120, "bob moment".to_string());
-
-    //let exp_encoded = exp.try_to_vec().unwrap();
-    //println!("experience encoded = {:?}", exp_encoded.clone());
-    //let exp_decoded = Experience::try_from_slice(&exp_encoded).unwrap();
-    //println!("experience decoded = {:?}", exp_decoded);
-
-}*/
 
 #[cfg(test)]
 mod tests {
@@ -494,7 +490,7 @@ mod tests {
     use near_sdk::{testing_env, VMContext};
     // use near_primitives_core::config::ViewConfig;
 
-    fn get_context(wallet: &str, storage_usage: u64) -> VMContext {
+    fn get_context(wallet: &str, deposit: u128, storage_usage: u64) -> VMContext {
         VMContext {
             current_account_id: "jane.testnet".parse().unwrap(),
             signer_account_id: wallet.parse().unwrap(),
@@ -506,7 +502,7 @@ mod tests {
             account_balance: 0,
             account_locked_balance: 0,
             storage_usage,
-            attached_deposit: 0,
+            attached_deposit: deposit,
             prepaid_gas: 10u64.pow(18),
             random_seed: vec![0, 1, 2],
             view_config: None,
@@ -516,22 +512,20 @@ mod tests {
     }
 
     fn pepe_test(contract: &mut Contract) {
-        let context = get_context("pepe.testnet", 0);
+        let context = get_context("pepe.testnet", 5 * YOCTO_NEAR, 0);
         testing_env!(context);
-        let id: AccountId = "pepe.testnet".parse().unwrap();
         (*contract).set_user(
-            id.clone(),
             "pepe".to_string(),
             "pepediscord".to_string(),
             "pepemail".to_string(),
             8
         );
-        for n in 1..20{
+        for _n in 1..25 {
             contract.set_experience(
             "experience 1".to_string(),
             "descripcion video pepe".to_string(),
             "https://video.de/pepe".to_string(),
-            n as f64,
+            5 as f64,
             "pepe moment".to_string(),
             100,
             1200,
@@ -540,28 +534,26 @@ mod tests {
     }
 
     fn bob_test(contract: &mut Contract) {
-        let context = get_context("bob.testnet", 0);
+        let context = get_context("bob.testnet", 5 * YOCTO_NEAR, 0);
         testing_env!(context);
-        let id2: AccountId = "bob.testnet".parse().unwrap();
         contract.set_user(
-            id2.clone(),
             "bob".to_string(),
             "bobdiscord".to_string(),
             "bobmail".to_string(),
             7
         );
-        for n in 1..20{
+/*        for _n in 1..20{
             contract.set_experience(
             "experience 1".to_string(),
             "descripcion video bob".to_string(),
             "https://video.de/bob".to_string(),
-            n as f64,
+            5 as f64,
             "bob moment".to_string(),
             100,
             1200,
             2
         );}
-    }
+*/    }
 
     #[test]
     fn grant_access() {
@@ -569,10 +561,11 @@ mod tests {
         pepe_test(&mut contract);
         bob_test(&mut contract);
         let rew = contract.get_reward(1);
-        contract.set_pov(1, "bob.testnet".parse().unwrap(), "first pov".to_string());
-        let bob_exp = contract.get_user_exp("bob.testnet".parse().unwrap());
-        contract.set_pov(bob_exp[0].clone(), "pepe.testnet".parse().unwrap(), "second pov".to_string());
-        contract.delete_pov(bob_exp[0].clone());
+        contract.set_pov(1, "first pov".to_string());
+        // contract.set_pov(contract.get_number_of_experiences(), "last pov".to_string());
+        // let bob_exp = contract.get_user_exp("bob.testnet".parse().unwrap());
+        // contract.set_pov(bob_exp[0].clone(), "second pov".to_string());
+        // contract.delete_pov(bob_exp[0].clone());
         let exp_tmp = contract.get_experience(1);
         // let usr_tmp = contract.get_user(id.clone());
         println!("{:?}", rew);
