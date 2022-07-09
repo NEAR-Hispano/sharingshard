@@ -248,10 +248,15 @@ impl Contract {
         env::signer_account_id());
     }
 
-    pub fn set_pov(&mut self, video_n: u128, pov: String) {
+    pub fn set_pov(&mut self, video_n: u128, pov: String, date: i64) {
         let wallet = env::signer_account_id();
         self.verify_exp_status(video_n.clone(), "Active".to_string());
         self.verify_user(wallet.clone());
+        assert_ne!(self.experience.get(
+            &video_n.clone()).unwrap().owner.clone(),
+            wallet.clone(),
+            "You can't put a pov in your own experience"
+        );
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         assert_eq!(exp.pov.get(&wallet.clone()), None,
         "User has already given a pov for this experience");
@@ -259,6 +264,7 @@ impl Contract {
         self.experience.insert(&video_n.clone(), &exp);
         let mut usr = self.users.get(&wallet.clone()).unwrap();
         usr.pov_exp.push(video_n.clone());
+        usr.date = date;
         self.users.insert(&wallet.clone(), &usr);
     }
 /*
@@ -458,102 +464,67 @@ mod tests {
         }
     }
 
-    fn pepe_test(contract: &mut Contract) {
-        // testing_env!(get_context("pepe.testnet", 0, 0));
-        testing_env!(get_context("pepe.testnet", 5 * YOCTO_NEAR, 0));
+    fn set_new_user(mut context: VMContext, contract: &mut Contract, name: String) {
+        context.signer_account_id = (&(name.clone() + ".testnet")).parse().unwrap();
+        testing_env!(context);
         (*contract).set_user(
-            "pepe".to_string(),
-            "pepediscord".to_string(),
-            "pepemail".to_string(),
+            name.clone(),
+            name.clone() + "discord",
+            name.clone() + "mail",
             8
         );
-        // testing_env!(get_context("pepe.testnet", 5 * YOCTO_NEAR, 0));
-        // for _n in 1..15 {
-            // testing_env!(get_context("pepe.testnet", 5 * YOCTO_NEAR, 0));
-            contract.set_experience(
-            "experience 1".to_string(),
-            "descripcion video pepe".to_string(),
-            "https://video.de/pepe".to_string(),
-            5 as f64,
-            "pepe moment".to_string(),
-            100,
-            1200,
-            2
-        );//}
     }
 
-    fn bob_test(contract: &mut Contract) {
-        let context = get_context("bob.testnet", 5 * YOCTO_NEAR, 0);
+    fn add_exp(wallet: &str, contract: &mut Contract, mut context: VMContext) {
+        context.signer_account_id = wallet.parse().unwrap();
+        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
         testing_env!(context);
-        contract.set_user(
-            "bob".to_string(),
-            "bobdiscord".to_string(),
-            "bobmail".to_string(),
-            7
-        );
-/*        for _n in 1..20{
-            contract.set_experience(
-            "experience 1".to_string(),
-            "descripcion video bob".to_string(),
-            "https://video.de/bob".to_string(),
-            5 as f64,
-            "bob moment".to_string(),
+        (*contract).set_experience(
+            "exp name".to_string(),
+            "exp description".to_string(),
+            "url".to_string(),
+            100.0,
+            "moment".to_string(),
             100,
-            1200,
-            2
-        );}
-*/    }
+            150,
+            3
+        );
+    }
+
+    fn add_pov(mut context: VMContext, contract: &mut Contract, wallet: &str, vid: u128) {
+        context.signer_account_id = wallet.parse().unwrap();
+        testing_env!(context);
+        (*contract).set_pov(vid, wallet.to_string() + " pov", 150);
+    }
 
     #[test]
-    fn grant_access() {
+    fn create_users() {
+        let context = get_context("test.tesnet", 0, 0);
         let mut contract = Contract::new();
-        pepe_test(&mut contract);
-        bob_test(&mut contract);
-        let rew = contract.get_reward(1);
-        contract.set_pov(1, "first pov".to_string());
-        // contract.set_pov(contract.get_number_of_experiences(), "last pov".to_string());
-        // let bob_exp = contract.get_user_exp("bob.testnet".parse().unwrap());
-        // contract.set_pov(bob_exp[0].clone(), "second pov".to_string());
-        // contract.delete_pov(bob_exp[0].clone());
-        let exp_tmp = contract.get_experience(1);
-        // let usr_tmp = contract.get_user(id.clone());
-        println!("{:?}", rew);
-        println!("{:?}", exp_tmp);      
-        // let exp = contract.set_experience(
-        // "experience 2".to_string(),
-        // "descripcion video bob".to_string(),
-        // "https://video.de/bob".to_string(),
-        // 20.0,
-        // "bob moment".to_string(),
-        // 50,
-        // 100,
-        // 2);
-        
-        // println!("reward for experience 1 = {:?}", rew);
-        // println!("url = {}", contract.get_url(1));
-        // println!("{} experience title = {:?}", exp, contract.get_title(exp));
-        // println!("{} experience description = {:?}", exp, contract.get_exp_description(exp));
-        // println!("{} experience video url = {:?}", exp, contract.get_url(exp));
-        // println!("{} experience topic = {:?}", exp, contract.get_topic(exp));
-        // println!("{} experience reward = {:?}", exp, contract.get_reward(exp));
-        // println!("{} experience expiration date = {:?}",
-        // exp, contract.get_expiration_date(exp));
-        // println!("{} experience moment comment = {:?}",
-        // exp, contract.get_moment_coment(exp));
-        // println!("{} experience moment time = {:?}", exp, contract.get_moment_time(exp));
-        // println!("{} experience points of view = {:?}",
-        // exp, contract.get_pov_of_vid(exp));
-        // println!("pepe's experiences = {:?}", contract.get_user_exp(id.clone()));
-        // println!("experiences on area 2 = {:?}", contract.get_exp_by_topic(2));
-        // println!("{} user name = {:?}", id, contract.get_user_name(id.clone()));
-        // println!("{} user discord = {:?}", id, contract.get_user_discord(id.clone()));
-        // println!("{} user email = {:?}", id, contract.get_user_email(id.clone()));
-        // println!("{} user interests = {:?}",
-        // id, contract.get_user_interests(id.clone()));
-        // println!("experiences {} has left a pov = {:?}",
-        // id.clone(), contract.get_user_exp_pov(id.clone()));
-        // println!("last date {} commented = {:?}",
-        // id.clone(), contract.get_user_date(id.clone()));
-        // println!("total of experiences = {}", contract.get_number_of_experiences());
+        set_new_user(context.clone(), &mut contract, "pepe".to_string());
+        set_new_user(context.clone(), &mut contract, "bob".to_string());
+    }
+
+    #[test]
+    fn create_experience() {
+        let context = get_context("test.tesnet", 0, 0);
+        let mut contract = Contract::new();
+        set_new_user(context.clone(), &mut contract, "pepe".to_string());
+        set_new_user(context.clone(), &mut contract, "bob".to_string());
+        // for _n in 1..20 {
+        add_exp("pepe.testnet", &mut contract, context.clone());
+        add_exp("bob.testnet", &mut contract, context.clone());
+        // }
+    }
+
+    #[test]
+    fn create_pov() {
+        let context = get_context("test.tesnet", 0, 0);
+        let mut contract = Contract::new();
+        set_new_user(context.clone(), &mut contract, "pepe".to_string());
+        set_new_user(context.clone(), &mut contract, "bob".to_string());
+        add_exp("pepe.testnet", &mut contract, context.clone());
+        add_exp("bob.testnet", &mut contract, context.clone());
+        add_pov(context.clone(), &mut contract, "bob.testnet", 1);
     }
 }
