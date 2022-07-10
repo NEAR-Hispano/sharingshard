@@ -465,8 +465,8 @@ mod tests {
     }
 
     fn set_new_user(mut context: VMContext, contract: &mut Contract, name: String) {
-        context.signer_account_id = (&(name.clone() + ".testnet")).parse().unwrap();
-        testing_env!(context);
+        // context.signer_account_id = (&(name.clone() + ".testnet")).parse().unwrap();
+        // testing_env!(context);
         (*contract).set_user(
             name.clone(),
             name.clone() + "discord",
@@ -476,9 +476,9 @@ mod tests {
     }
 
     fn add_exp(wallet: &str, contract: &mut Contract, mut context: VMContext) {
-        context.signer_account_id = wallet.parse().unwrap();
-        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
-        testing_env!(context);
+        // context.signer_account_id = wallet.parse().unwrap();
+        // context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
+        // testing_env!(context);
         (*contract).set_experience(
             "exp name".to_string(),
             "exp description".to_string(),
@@ -492,39 +492,63 @@ mod tests {
     }
 
     fn add_pov(mut context: VMContext, contract: &mut Contract, wallet: &str, vid: u128) {
-        context.signer_account_id = wallet.parse().unwrap();
-        testing_env!(context);
+        // context.signer_account_id = wallet.parse().unwrap();
+        // testing_env!(context);
         (*contract).set_pov(vid, wallet.to_string() + " pov", 150);
     }
 
     #[test]
     fn create_users() {
-        let context = get_context("test.tesnet", 0, 0);
+        let mut context = get_context("test.tesnet", 0, 0);
         let mut contract = Contract::new();
+        context.signer_account_id = "pepe.testnet".parse().unwrap();
+        testing_env!(context.clone());
         set_new_user(context.clone(), &mut contract, "pepe".to_string());
+        context.signer_account_id = "bob.testnet".parse().unwrap();
+        testing_env!(context.clone());
         set_new_user(context.clone(), &mut contract, "bob".to_string());
     }
 
     #[test]
     fn create_experience() {
-        let context = get_context("test.tesnet", 0, 0);
+        let mut context = get_context("test.tesnet", 0, 0);
         let mut contract = Contract::new();
+        context.signer_account_id = "pepe.testnet".parse().unwrap();
+        testing_env!(context.clone());
         set_new_user(context.clone(), &mut contract, "pepe".to_string());
-        set_new_user(context.clone(), &mut contract, "bob".to_string());
-        // for _n in 1..20 {
         add_exp("pepe.testnet", &mut contract, context.clone());
+        context.signer_account_id = "bob.testnet".parse().unwrap();
+        testing_env!(context.clone());
+        set_new_user(context.clone(), &mut contract, "bob".to_string());
         add_exp("bob.testnet", &mut contract, context.clone());
-        // }
     }
 
     #[test]
     fn create_pov() {
-        let context = get_context("test.tesnet", 0, 0);
+        let mut context = get_context("test.tesnet", 0, 0);
         let mut contract = Contract::new();
+        context.signer_account_id = "pepe.testnet".parse().unwrap();
+        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
+        testing_env!(context.clone());
         set_new_user(context.clone(), &mut contract, "pepe".to_string());
+        for _n in 1..10 {
+            // testing_env!(context.clone());
+            add_exp("pepe.testnet", &mut contract, context.clone());
+        }
+        context.signer_account_id = "bob.testnet".parse().unwrap();
+        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
+        testing_env!(context.clone());
         set_new_user(context.clone(), &mut contract, "bob".to_string());
-        add_exp("pepe.testnet", &mut contract, context.clone());
-        add_exp("bob.testnet", &mut contract, context.clone());
-        add_pov(context.clone(), &mut contract, "bob.testnet", 1);
+        for n in 1..10 {
+            add_exp("bob.testnet", &mut contract, context.clone());
+            add_pov(context.clone(), &mut contract, "bob.testnet", n.clone());
+        }
+        context.signer_account_id = "pepe.testnet".parse().unwrap();
+        testing_env!(context.clone());
+        contract.get_number_of_experiences();
+        contract.get_experience(11);
+        // for n in 1..10 {
+            // add_pov(context.clone(), &mut contract, "pepe.testnet", 11);
+        // }
     }
 }
