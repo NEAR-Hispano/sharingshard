@@ -1,5 +1,8 @@
 #[path = "./enumerations.rs"]
-mod enumerations;
+pub mod enumerations;
+#[path = "./structs.rs"]
+mod structs;
+pub use crate::structs::*;
 pub use crate::enumerations::*;
 use near_sdk::{env, Promise, Balance, AccountId, near_bindgen};
 use std::collections::HashMap;
@@ -196,138 +199,5 @@ impl Contract {
         usr.pov_exp.push(video_n.clone());
         usr.date = date;
         self.users.insert(&wallet.clone(), &usr);
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    // use near_sdk::MockedBlockchain;
-    use near_sdk::{testing_env, VMContext};
-    // use near_primitives_core::config::ViewConfig;
-
-    fn get_context(wallet: &str, deposit: u128, storage_usage: u64) -> VMContext {
-        VMContext {
-            current_account_id: "jane.testnet".parse().unwrap(),
-            signer_account_id: wallet.parse().unwrap(),
-            signer_account_pk: vec![0, 1, 2],
-            predecessor_account_id: "bob.testnet".parse().unwrap(),
-            input: vec![],
-            block_index: 0,
-            block_timestamp: 0,
-            account_balance: 0,
-            account_locked_balance: 0,
-            storage_usage,
-            attached_deposit: deposit,
-            prepaid_gas: 10u64.pow(18),
-            random_seed: vec![0, 1, 2],
-            view_config: None,
-            output_data_receivers: vec![],
-            epoch_height: 19,
-        }
-    }
-
-    fn set_new_user(mut context: VMContext, contract: &mut Contract, name: String) {
-        // context.signer_account_id = (&(name.clone() + ".testnet")).parse().unwrap();
-        // testing_env!(context);
-        (*contract).set_user(
-            name.clone(),
-            name.clone() + "discord",
-            name.clone() + "mail",
-            8
-        );
-    }
-
-    fn add_exp(wallet: &str, contract: &mut Contract, mut context: VMContext) {
-        // context.signer_account_id = wallet.parse().unwrap();
-        // context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
-        // testing_env!(context);
-        (*contract).set_experience(
-            "exp name".to_string(),
-            "exp description".to_string(),
-            "url".to_string(),
-            100.0,
-            "moment".to_string(),
-            100,
-            150,
-            3
-        );
-    }
-
-    fn add_pov(mut context: VMContext, contract: &mut Contract, wallet: &str, vid: u128) {
-        // context.signer_account_id = wallet.parse().unwrap();
-        // testing_env!(context);
-        (*contract).set_pov(vid, wallet.to_string() + " pov", 150);
-    }
-
-    #[test]
-    fn create_users() {
-        let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
-        context.signer_account_id = "pepe.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "pepe".to_string());
-        context.signer_account_id = "bob.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "bob".to_string());
-    }
-
-    #[test]
-    fn create_experience() {
-        let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
-        context.signer_account_id = "pepe.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "pepe".to_string());
-        add_exp("pepe.testnet", &mut contract, context.clone());
-        context.signer_account_id = "bob.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "bob".to_string());
-        add_exp("bob.testnet", &mut contract, context.clone());
-    }
-
-    #[test]
-    fn create_pov() {
-        let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
-        context.signer_account_id = "pepe.testnet".parse().unwrap();
-        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "pepe".to_string());
-        for _n in 1..10 {
-            // testing_env!(context.clone());
-            add_exp("pepe.testnet", &mut contract, context.clone());
-        }
-        context.signer_account_id = "bob.testnet".parse().unwrap();
-        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "bob".to_string());
-        for n in 1..10 {
-            add_exp("bob.testnet", &mut contract, context.clone());
-            add_pov(context.clone(), &mut contract, "bob.testnet", n.clone());
-        }
-        context.signer_account_id = "pepe.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        contract.get_number_of_experiences();
-        contract.get_experience(11);
-        // for n in 1..10 {
-            // add_pov(context.clone(), &mut contract, "pepe.testnet", 11);
-        // }
-    }
-
-    #[test]
-    fn test_set_exp_expire_date() {
-        let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
-        context.signer_account_id = "pepe.testnet".parse().unwrap();
-        testing_env!(context.clone());
-        set_new_user(context.clone(), &mut contract, "pepe".to_string());
-        for _n in 1..10 {
-            add_exp("pepe.testnet", &mut contract, context.clone());
-        }
-        contract.set_experience_expire_date(1, 300);
-        println!("{:?}", contract.get_exp_status(1));
-        println!("{:?}", contract.get_exp_by_topic(3));
     }
 }

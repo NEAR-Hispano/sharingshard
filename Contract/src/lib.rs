@@ -2,8 +2,8 @@ pub mod structs;
 pub use crate::structs::*;
 mod setters;
 pub use crate::setters::*;
-mod enumerations;
-pub use crate::enumerations::*;
+// mod enumerations;
+// pub use crate::enumerations::*;
 use near_sdk::{env, near_bindgen, AccountId};
 use near_sdk::collections::LookupMap;
 
