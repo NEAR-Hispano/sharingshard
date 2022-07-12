@@ -26,7 +26,7 @@ Initializing contract:
 
 Add new user:
 
-`near call <CONTRACT OWNER WALLET> set_user --args '{"n": "<USER NAME>", "disc": "<USER DIRCORD>", "mail": "<USER EMAIL>", "interests": u8}' --accountId <CALLER WALLET>`
+`near call <CONTRACT OWNER WALLET> set_user --args '{"name": "<USER NAME>", "discord": "<USER DIRCORD>", "email": "<USER EMAIL>", "interests": u8}' --accountId <CALLER WALLET>`
 
 
 Change user discord:
@@ -77,7 +77,7 @@ Change experience expire date:
 
 Add PoV to experience:
 
-`near call <CONTRACT OWNER WALLET> set_pov --args '{"video_n": u128, "pov": "<COMMENT>"}' --accountId <CALLER WALLET>`
+`near call <CONTRACT OWNER WALLET> set_pov --args '{"video_n": u128, "pov": "<COMMENT>", date: i64}' --accountId <CALLER WALLET>`
 
 *************
 ** Getters **

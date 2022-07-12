@@ -1,0 +1,62 @@
+use near_sdk::{near_bindgen, AccountId, Balance, PanicOnDefault};
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::LookupMap;
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+
+pub const YOCTO_NEAR: Balance = 1_000_000_000_000_000_000_000_000;
+pub const SEND_FUNDS: Balance = 4_500_000_000_000_000_000;
+//https://docs.near.org/docs/concepts/storage-staking
+//const STORAGE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
+pub const FEE: f64 = 1.1;
+
+/*
+** Enums
+*/
+
+#[derive(Debug, BorshSerialize, BorshDeserialize, Serialize, Deserialize, PartialEq)]
+pub enum Status {
+    InProcess,
+    Active,
+    Closed
+}
+
+/*
+** Structures
+*/
+
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug)]
+pub struct Experience{
+    pub title: String,
+    pub owner: AccountId,
+    pub description: String,
+    pub url: String,
+    pub topic: u8,
+    pub reward: f64,
+    pub exp_date: i64,
+    pub moment: String,
+    pub time: u16,
+    pub pov: HashMap<AccountId, String>,
+    pub status: Status,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug)]
+pub struct User{
+    pub name: String,
+    pub discord: String,
+    pub email: String,
+    pub interests: u8,
+    pub my_exp: Vec<u128>,
+    pub pov_exp: Vec<u128>,
+    pub date: i64,
+}
+
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Contract{
+    pub users: LookupMap<AccountId, User>,
+    pub experience: LookupMap<u128, Experience>,
+    pub exp_by_topic: LookupMap< u8, Vec<u128> >,
+    pub n_exp: u128,
+    pub ss_wallet: AccountId,
+}
