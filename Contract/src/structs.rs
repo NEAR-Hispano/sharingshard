@@ -1,14 +1,8 @@
-use near_sdk::{near_bindgen, AccountId, Balance, PanicOnDefault};
+use near_sdk::{near_bindgen, AccountId, PanicOnDefault};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-
-pub const YOCTO_NEAR: Balance = 1_000_000_000_000_000_000_000_000;
-pub const SEND_FUNDS: Balance = 4_500_000_000_000_000_000;
-//https://docs.near.org/docs/concepts/storage-staking
-//const STORAGE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
-pub const FEE: f64 = 1.1;
 
 /*
 ** Enums

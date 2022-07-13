@@ -6,6 +6,11 @@ pub use crate::structs::*;
 pub use crate::enumerations::*;
 use near_sdk::{env, Promise, Balance, AccountId, near_bindgen};
 use std::collections::HashMap;
+pub const YOCTO_NEAR: Balance = 1_000_000_000_000_000_000_000_000;
+pub const SEND_FUNDS: Balance = 4_500_000_000_000_000_000;
+//https://docs.near.org/docs/concepts/storage-staking
+//const STORAGE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
+pub const FEE: f64 = 1.1;
 
 fn send_fee(receiver: AccountId, deposit: Balance, reward: f64, wallet: AccountId) { //make priv
     let fee = ((reward * FEE) - reward) as u128 * YOCTO_NEAR;
@@ -19,40 +24,6 @@ fn send_fee(receiver: AccountId, deposit: Balance, reward: f64, wallet: AccountI
 
 #[near_bindgen]
 impl Contract {
-    pub fn pay_reward(&mut self, experience_number: u128, wallet: AccountId) {
-        let caller = env::signer_account_id();
-        self.verify_exp_owner(experience_number.clone(), caller.clone());
-        assert_eq!(self.get_exp_status(experience_number.clone()),
-        Status::Active, "Experience not active");
-        assert_ne!(self.experience.get(
-            &experience_number.clone()).unwrap().pov.get(&wallet.clone()),
-            None,
-            "{} did not give a PoV for this experience", wallet.clone());
-        Promise::new(wallet).transfer(
-            (self.get_reward(experience_number.clone()) as Balance)
-            * YOCTO_NEAR);
-        let mut exp = self.experience.get(&experience_number.clone()).unwrap();
-        exp.status = Status::Closed;
-        self.experience.insert(&experience_number.clone() , &exp);
-    }
-
-    #[payable]
-    pub fn activate_experience(&mut self, video_n: u128) {
-        self.verify_user(env::signer_account_id());
-        self.verify_exp(video_n.clone());
-        assert_eq!(self.experience.get(&video_n.clone()).unwrap().status,
-        Status::InProcess, "Experience already activated");
-        self.verify_exp_owner(video_n.clone(), env::signer_account_id());
-        let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
-        assert!(env::attached_deposit() >= ((reward * FEE) as u128 * YOCTO_NEAR),
-        "Not enough tokens");
-        let mut exp = self.experience.get(&video_n.clone()).unwrap();
-        exp.status = Status::Active;
-        self.experience.insert(&video_n.clone(), &exp);
-        send_fee(self.ss_wallet.clone() , env::attached_deposit(), reward.clone(),
-        env::signer_account_id());
-    }
-
     pub fn set_user(
         &mut self,
         name: String,
@@ -68,38 +39,6 @@ impl Contract {
             my_exp: Vec::new(),
             pov_exp: Vec::new(),
             date: 0});
-    }
-
-    pub fn set_user_discord(&mut self, discord: String) {
-        let wallet = env::signer_account_id();
-        self.verify_user(wallet.clone());
-        let mut user = self.users.get(&wallet.clone()).unwrap();
-        user.discord = discord;
-        self.users.insert(&wallet, &user);
-    }
-
-    pub fn set_user_email(&mut self, email: String) {
-        let wallet = env::signer_account_id();
-        self.verify_user(wallet.clone());
-        let mut user = self.users.get(&wallet.clone()).unwrap();
-        user.email = email;
-        self.users.insert(&wallet, &user);
-    }
-
-    pub fn set_user_interests(&mut self, interests: u8) {
-        let wallet = env::signer_account_id();
-        self.verify_user(wallet.clone());
-        let mut user = self.users.get(&wallet.clone()).unwrap();
-        user.interests = interests;
-        self.users.insert(&wallet, &user);
-    }
-
-    pub fn set_user_name(&mut self, name: String) {
-        let wallet = env::signer_account_id();
-        self.verify_user(wallet.clone());
-        let mut user = self.users.get(&wallet.clone()).unwrap();
-        user.name = name;
-        self.users.insert(&wallet, &user);
     }
 
     #[payable]
@@ -145,6 +84,38 @@ impl Contract {
         usr.my_exp.push(self.n_exp.clone());
         self.users.insert(&env::signer_account_id(), &usr);
         self.n_exp
+    }
+
+    pub fn set_user_discord(&mut self, discord: String) {
+        let wallet = env::signer_account_id();
+        self.verify_user(wallet.clone());
+        let mut user = self.users.get(&wallet.clone()).unwrap();
+        user.discord = discord;
+        self.users.insert(&wallet, &user);
+    }
+
+    pub fn set_user_email(&mut self, email: String) {
+        let wallet = env::signer_account_id();
+        self.verify_user(wallet.clone());
+        let mut user = self.users.get(&wallet.clone()).unwrap();
+        user.email = email;
+        self.users.insert(&wallet, &user);
+    }
+
+    pub fn set_user_interests(&mut self, interests: u8) {
+        let wallet = env::signer_account_id();
+        self.verify_user(wallet.clone());
+        let mut user = self.users.get(&wallet.clone()).unwrap();
+        user.interests = interests;
+        self.users.insert(&wallet, &user);
+    }
+
+    pub fn set_user_name(&mut self, name: String) {
+        let wallet = env::signer_account_id();
+        self.verify_user(wallet.clone());
+        let mut user = self.users.get(&wallet.clone()).unwrap();
+        user.name = name;
+        self.users.insert(&wallet, &user);
     }
 
     pub fn set_moment_comment(&mut self, video_n: u128, comment: String) {
@@ -199,5 +170,43 @@ impl Contract {
         usr.pov_exp.push(video_n.clone());
         usr.date = date;
         self.users.insert(&wallet.clone(), &usr);
+    }
+
+/*
+** Transactions
+*/
+
+    pub fn pay_reward(&mut self, experience_number: u128, wallet: AccountId) {
+        let caller = env::signer_account_id();
+        self.verify_exp_owner(experience_number.clone(), caller.clone());
+        assert_eq!(self.get_exp_status(experience_number.clone()),
+        Status::Active, "Experience not active");
+        assert_ne!(self.experience.get(
+            &experience_number.clone()).unwrap().pov.get(&wallet.clone()),
+            None,
+            "{} did not give a PoV for this experience", wallet.clone());
+        Promise::new(wallet).transfer(
+            (self.get_reward(experience_number.clone()) as Balance)
+            * YOCTO_NEAR);
+        let mut exp = self.experience.get(&experience_number.clone()).unwrap();
+        exp.status = Status::Closed;
+        self.experience.insert(&experience_number.clone() , &exp);
+    }
+
+    #[payable]
+    pub fn activate_experience(&mut self, video_n: u128) {
+        self.verify_user(env::signer_account_id());
+        self.verify_exp(video_n.clone());
+        assert_eq!(self.experience.get(&video_n.clone()).unwrap().status,
+        Status::InProcess, "Experience already activated");
+        self.verify_exp_owner(video_n.clone(), env::signer_account_id());
+        let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
+        assert!(env::attached_deposit() >= ((reward * FEE) as u128 * YOCTO_NEAR),
+        "Not enough tokens");
+        let mut exp = self.experience.get(&video_n.clone()).unwrap();
+        exp.status = Status::Active;
+        self.experience.insert(&video_n.clone(), &exp);
+        send_fee(self.ss_wallet.clone() , env::attached_deposit(), reward.clone(),
+        env::signer_account_id());
     }
 }

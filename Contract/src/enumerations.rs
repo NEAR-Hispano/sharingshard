@@ -7,6 +7,7 @@ use std::collections::HashMap;
 /*
 ** Getters
 */
+
 #[near_bindgen]
 impl Contract {
     pub fn get_experience(&self, video_n: u128) ->Experience {
