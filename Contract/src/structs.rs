@@ -53,4 +53,5 @@ pub struct Contract{
     pub exp_by_topic: LookupMap< u8, Vec<u128> >,
     pub n_exp: u128,
     pub ss_wallet: AccountId,
+    pub fee: f64,
 }

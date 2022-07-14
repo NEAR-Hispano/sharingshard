@@ -119,4 +119,8 @@ impl Contract {
     pub fn get_number_of_experiences(&self) ->u128 {
         self.n_exp
     }
+
+    pub fn get_fee(&self) ->f64 {
+        (self.fee - 1.0) * 100.0
+    }
 }

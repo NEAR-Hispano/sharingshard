@@ -10,12 +10,11 @@ pub const YOCTO_NEAR: Balance = 1_000_000_000_000_000_000_000_000;
 pub const SEND_FUNDS: Balance = 4_500_000_000_000_000_000;
 //https://docs.near.org/docs/concepts/storage-staking
 //const STORAGE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
-pub const FEE: f64 = 1.1;
 
-fn send_fee(receiver: AccountId, deposit: Balance, reward: f64, wallet: AccountId) { //make priv
-    let fee = ((reward * FEE) - reward) as u128 * YOCTO_NEAR;
-    Promise::new(receiver.clone()).transfer(fee);
-    let diff = deposit - ((reward as u128 * YOCTO_NEAR) + fee);
+fn send_fee(receiver: AccountId, deposit: Balance, reward: f64, wallet: AccountId, fee: f64) {
+    let trans = ((reward * fee) - reward) as u128 * YOCTO_NEAR;
+    Promise::new(receiver.clone()).transfer(trans);
+    let diff = deposit - ((reward as u128 * YOCTO_NEAR) + trans);
     if diff > SEND_FUNDS{
         Promise::new(wallet).transfer(diff);
     }
@@ -32,13 +31,15 @@ impl Contract {
         interests: u8) {
         let wallet = env::signer_account_id();
         assert!(!self.users.contains_key(&wallet.clone()), "User already exists");
-        self.users.insert(&wallet.clone(), &User{name: name,
+        self.users.insert(&wallet.clone(), &User{
+            name: name,
             discord: discord,
             email: email,
             interests: interests,
             my_exp: Vec::new(),
             pov_exp: Vec::new(),
-            date: 0});
+            date: 0}
+        );
     }
 
     #[payable]
@@ -54,10 +55,15 @@ impl Contract {
         self.verify_user(env::signer_account_id());
         let mut stat = Status::InProcess;
         if env::attached_deposit() > 0 {
-            assert!(env::attached_deposit() >= ((reward * FEE) as u128 * YOCTO_NEAR),
+            assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
             "Wrong amount of NEARs");
-            send_fee(self.ss_wallet.clone(), env::attached_deposit(), reward.clone(),
-            env::signer_account_id());
+            send_fee(
+                self.ss_wallet.clone(),
+                env::attached_deposit(),
+                reward.clone(),
+                env::signer_account_id(),
+                self.fee.clone()
+            );
             stat = Status::Active;
         }
         self.n_exp += 1;
@@ -172,6 +178,18 @@ impl Contract {
         self.users.insert(&wallet.clone(), &usr);
     }
 
+    pub fn set_fee(&mut self, fee: f64) {
+        assert_eq!(
+            env::current_account_id(),
+            env::signer_account_id(),
+            "Signer is not the owner of the contract"
+        );
+        if (fee < 0.0) || (fee > 100.0) {
+            panic!("Fee out of range");
+        }
+        self.fee = 1.0 + (fee / 100.0);
+    }
+
 /*
 ** Transactions
 */
@@ -201,12 +219,17 @@ impl Contract {
         Status::InProcess, "Experience already activated");
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
         let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
-        assert!(env::attached_deposit() >= ((reward * FEE) as u128 * YOCTO_NEAR),
+        assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
         "Not enough tokens");
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.status = Status::Active;
         self.experience.insert(&video_n.clone(), &exp);
-        send_fee(self.ss_wallet.clone() , env::attached_deposit(), reward.clone(),
-        env::signer_account_id());
+        send_fee(
+            self.ss_wallet.clone(),
+            env::attached_deposit(),
+            reward.clone(),
+            env::signer_account_id(),
+            self.fee.clone()
+        );
     }
 }

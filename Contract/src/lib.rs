@@ -19,6 +19,7 @@ impl Contract {
             exp_by_topic: LookupMap::new(b"c"),
             n_exp: 0,
             ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
+            fee: 1.1
         }
     }
 
@@ -157,18 +158,31 @@ mod tests {
     }
 
     #[test]
+    fn test_activate_exp() {
+        let mut contract = Contract::new();
+        let context = get_context("pepe.testnet", 110 * YOCTO_NEAR, 0);
+        testing_env!(context);
+        set_new_user(&mut contract, "pepe".to_string());
+        add_exp(&mut contract);
+        // context.attached_deposit = 110 * YOCTO_NEAR;
+        // testing_env!(context.clone());
+        // contract.activate_experience(1);
+        println!("{:?}", contract.get_experience(1));
+    }
+
+    #[test]
     fn create_pov() {
         let mut context = get_context("test.tesnet", 0, 0);
         let mut contract = Contract::new();
         context.signer_account_id = "pepe.testnet".parse().unwrap();
-        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
+        context.attached_deposit = (100.0 * contract.fee) as u128 * YOCTO_NEAR;
         testing_env!(context.clone());
         set_new_user(&mut contract, "pepe".to_string());
         for _n in 1..10 {
             add_exp(&mut contract);
         }
         context.signer_account_id = "bob.testnet".parse().unwrap();
-        context.attached_deposit = (100.0 * FEE) as u128 * YOCTO_NEAR;
+        context.attached_deposit = (100.0 * contract.fee) as u128 * YOCTO_NEAR;
         testing_env!(context.clone());
         set_new_user(&mut contract, "bob".to_string());
         for n in 1..10 {
