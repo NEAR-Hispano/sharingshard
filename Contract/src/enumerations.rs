@@ -123,4 +123,12 @@ impl Contract {
     pub fn get_fee(&self) ->f64 {
         (self.fee - 1.0) * 100.0
     }
+
+    pub fn get_list_of_users(&self) ->Vec<AccountId> {
+        self.users.keys_as_vector().to_vec()
+    }
+
+    pub fn get_winner(&self, video_n: u128) ->String {
+        self.experience.get(&video_n).unwrap().winner
+    }
 }

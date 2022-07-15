@@ -3,7 +3,7 @@ pub use crate::structs::*;
 mod setters;
 pub use crate::setters::*;
 use near_sdk::{env, near_bindgen, AccountId};
-use near_sdk::collections::LookupMap;
+use near_sdk::collections::{LookupMap, UnorderedMap};
 
 /*
 ** Initialization
@@ -14,7 +14,7 @@ impl Contract {
     pub fn new() -> Self {
         assert!(env::state_read::<Self>().is_none(), "Already initialized");
         Self{
-            users: LookupMap::new(b"a"),
+            users: UnorderedMap::new(b"a"),
             experience: LookupMap::new(b"m"),
             exp_by_topic: LookupMap::new(b"c"),
             n_exp: 0,
@@ -75,7 +75,7 @@ impl Contract {
     }
 
     fn verify_user(&self, wallet: AccountId) {
-        assert!(self.users.contains_key(&wallet.clone()),"No user for this wallet: {}", wallet);
+        assert_ne!(self.users.get(&wallet.clone()), None,"No user for this wallet: {}", wallet);
     }
 }
 

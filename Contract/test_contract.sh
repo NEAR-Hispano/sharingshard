@@ -18,17 +18,17 @@ pay_reward() {
     near call $1 pay_reward --args '{"experience_number": $3, "wallet": \"$4\"}' --accountId $2
 }
 
-# for i in $PREF; do
-#     i+=$2
-#     add_user $1 $i
-# done
+for i in $PREF; do
+    i+=$2
+    add_user $1 $i
+done
 
-N_EXP=`near view $1 get_number_of_experiences | grep -v View `
-for (( i = 1; i <= $N_EXP; i++ ))
-do
-    for j in $PREF
-    do
-        j+=$2
-        add_pov $1 $j $i
-    done
-donewallet
+# N_EXP=`near view $1 get_number_of_experiences | grep -v View `
+# for (( i = 1; i <= $N_EXP; i++ ))
+# do
+#     for j in $PREF
+#     do
+#         j+=$2
+#         add_pov $1 $j $i
+#     done
+# donewallet

@@ -193,6 +193,20 @@ Get total of experiences in the contract:
 
 
 ***
+** Deleters
+***
+
+Delete an experience that is still "InProcess":
+
+`near call <CONTRACT> delete_experience --args '{"video_n": u128}'`
+
+
+Delete a PoV from an experience:
+
+`near call <CONTRACT> delete_pov --args '{"video_n": u128}'`
+
+
+***
 ** Transfer Tokens **
 ***
 

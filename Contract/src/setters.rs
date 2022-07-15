@@ -11,15 +11,6 @@ pub const SEND_FUNDS: Balance = 4_500_000_000_000_000_000;
 //https://docs.near.org/docs/concepts/storage-staking
 //const STORAGE_PER_BYTE: Balance = 10_000_000_000_000_000_000;
 
-fn send_fee(receiver: AccountId, deposit: Balance, reward: f64, wallet: AccountId, fee: f64) {
-    let trans = ((reward * fee) - reward) as u128 * YOCTO_NEAR;
-    Promise::new(receiver.clone()).transfer(trans);
-    let diff = deposit - ((reward as u128 * YOCTO_NEAR) + trans);
-    if diff > SEND_FUNDS{
-        Promise::new(wallet).transfer(diff);
-    }
-}
-
 
 #[near_bindgen]
 impl Contract {
@@ -30,7 +21,7 @@ impl Contract {
         email: String,
         interests: u8) {
         let wallet = env::signer_account_id();
-        assert!(!self.users.contains_key(&wallet.clone()), "User already exists");
+        assert_eq!(self.users.get(&wallet.clone()), None, "User already exists");
         self.users.insert(&wallet.clone(), &User{
             name: name,
             discord: discord,
@@ -54,16 +45,16 @@ impl Contract {
         topic: u8) ->u128 {
         self.verify_user(env::signer_account_id());
         let mut stat = Status::InProcess;
+        //protect deposit to be bigger
         if env::attached_deposit() > 0 {
             assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
             "Wrong amount of NEARs");
-            send_fee(
-                self.ss_wallet.clone(),
-                env::attached_deposit(),
-                reward.clone(),
-                env::signer_account_id(),
-                self.fee.clone()
-            );
+            let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
+            Promise::new(self.ss_wallet.clone()).transfer(trans);
+            let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
+            if diff > SEND_FUNDS{
+                Promise::new(env::signer_account_id()).transfer(diff);
+            }
             stat = Status::Active;
         }
         self.n_exp += 1;
@@ -78,6 +69,7 @@ impl Contract {
             pov: HashMap::new(),
             topic: topic.clone(),
             exp_date: expire_date,
+            winner: String::new(),
             status: stat});
         let mut vec;
         if !self.exp_by_topic.contains_key(&topic.clone()) {
@@ -184,7 +176,7 @@ impl Contract {
             env::signer_account_id(),
             "Signer is not the owner of the contract"
         );
-        if (fee < 0.0) || (fee > 100.0) {
+        if (fee < 0.0) || (fee > 20.0) {
             panic!("Fee out of range");
         }
         self.fee = 1.0 + (fee / 100.0);
@@ -203,11 +195,12 @@ impl Contract {
             &experience_number.clone()).unwrap().pov.get(&wallet.clone()),
             None,
             "{} did not give a PoV for this experience", wallet.clone());
-        Promise::new(wallet).transfer(
+        Promise::new(wallet.clone()).transfer(
             (self.get_reward(experience_number.clone()) as Balance)
             * YOCTO_NEAR);
         let mut exp = self.experience.get(&experience_number.clone()).unwrap();
         exp.status = Status::Closed;
+        exp.winner = wallet.clone().to_string();
         self.experience.insert(&experience_number.clone() , &exp);
     }
 
@@ -219,17 +212,17 @@ impl Contract {
         Status::InProcess, "Experience already activated");
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
         let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
+        //protect deposit to be bigger
         assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
         "Not enough tokens");
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.status = Status::Active;
         self.experience.insert(&video_n.clone(), &exp);
-        send_fee(
-            self.ss_wallet.clone(),
-            env::attached_deposit(),
-            reward.clone(),
-            env::signer_account_id(),
-            self.fee.clone()
-        );
+        let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
+        Promise::new(self.ss_wallet.clone()).transfer(trans);
+        let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
+        if diff > SEND_FUNDS{
+            Promise::new(env::signer_account_id()).transfer(diff);
+        }
     }
 }

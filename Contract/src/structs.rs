@@ -1,6 +1,6 @@
 use near_sdk::{near_bindgen, AccountId, PanicOnDefault};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
+use near_sdk::collections::{LookupMap, UnorderedMap};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -31,10 +31,11 @@ pub struct Experience{
     pub moment: String,
     pub time: u16,
     pub pov: HashMap<AccountId, String>,
+    pub winner: String,
     pub status: Status,
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug)]
+#[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Debug, PartialEq)]
 pub struct User{
     pub name: String,
     pub discord: String,
@@ -48,7 +49,7 @@ pub struct User{
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract{
-    pub users: LookupMap<AccountId, User>,
+    pub users: UnorderedMap<AccountId, User>,
     pub experience: LookupMap<u128, Experience>,
     pub exp_by_topic: LookupMap< u8, Vec<u128> >,
     pub n_exp: u128,
