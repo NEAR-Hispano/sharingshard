@@ -38,23 +38,25 @@ impl Contract {
         experience_name: String,
         description: String,
         url: String,
-        reward: f64,
+        // reward: f64,
         moment: String,
         time: u16,
         expire_date: i64,
         topic: u8) ->u128 {
         self.verify_user(env::signer_account_id());
         let mut stat = Status::InProcess;
+        let mut reward = 0.0;
         //protect deposit to be bigger
         if env::attached_deposit() > 0 {
-            assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
-            "Wrong amount of NEARs");
-            let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
-            Promise::new(self.ss_wallet.clone()).transfer(trans);
-            let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
-            if diff > SEND_FUNDS{
-                Promise::new(env::signer_account_id()).transfer(diff);
-            }
+            assert!(env::attached_deposit() >= YOCTO_NEAR, "Wrong amount of NEARs");
+            // let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
+            // Promise::new(self.ss_wallet.clone()).transfer(trans);
+            // let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
+            // if diff > SEND_FUNDS{
+                // Promise::new(env::signer_account_id()).transfer(diff);
+            // }
+            reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
+            self.holdings += reward;
             stat = Status::Active;
         }
         self.n_exp += 1;
@@ -179,7 +181,7 @@ impl Contract {
         if (fee < 0.0) || (fee > 20.0) {
             panic!("Fee out of range");
         }
-        self.fee = 1.0 + (fee / 100.0);
+        self.fee = fee / 100.0;
     }
 
 /*
@@ -200,6 +202,8 @@ impl Contract {
             * YOCTO_NEAR);
         let mut exp = self.experience.get(&experience_number.clone()).unwrap();
         exp.status = Status::Closed;
+        self.holdings -= exp.reward;
+        exp.reward = 0.0;
         exp.winner = wallet.clone().to_string();
         self.experience.insert(&experience_number.clone() , &exp);
     }
@@ -211,18 +215,20 @@ impl Contract {
         assert_eq!(self.experience.get(&video_n.clone()).unwrap().status,
         Status::InProcess, "Experience already activated");
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
-        let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
+        // let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
         //protect deposit to be bigger
-        assert!(env::attached_deposit() >= ((reward * self.fee) as u128 * YOCTO_NEAR),
-        "Not enough tokens");
+        assert!(env::attached_deposit() >= YOCTO_NEAR, "Not enough tokens");
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
+        let reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
+        self.holdings += reward;
         exp.status = Status::Active;
+        exp.reward = reward;
         self.experience.insert(&video_n.clone(), &exp);
-        let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
-        Promise::new(self.ss_wallet.clone()).transfer(trans);
-        let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
-        if diff > SEND_FUNDS{
-            Promise::new(env::signer_account_id()).transfer(diff);
-        }
+        // let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
+        // Promise::new(self.ss_wallet.clone()).transfer(trans);
+        // let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
+        // if diff > SEND_FUNDS{
+        //     Promise::new(env::signer_account_id()).transfer(diff);
+        // }
     }
 }

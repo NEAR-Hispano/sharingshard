@@ -53,6 +53,7 @@ pub struct Contract{
     pub experience: LookupMap<u128, Experience>,
     pub exp_by_topic: LookupMap< u8, Vec<u128> >,
     pub n_exp: u128,
-    pub ss_wallet: AccountId,
+    pub holdings: f64,
+    // pub ss_wallet: AccountId,
     pub fee: f64,
 }

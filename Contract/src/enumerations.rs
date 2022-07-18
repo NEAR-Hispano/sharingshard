@@ -121,7 +121,7 @@ impl Contract {
     }
 
     pub fn get_fee(&self) ->f64 {
-        (self.fee - 1.0) * 100.0
+        self.fee * 100.0
     }
 
     pub fn get_list_of_users(&self) ->Vec<AccountId> {
@@ -130,5 +130,9 @@ impl Contract {
 
     pub fn get_winner(&self, video_n: u128) ->String {
         self.experience.get(&video_n).unwrap().winner
+    }
+
+    pub fn get_holdings(&self) ->f64 {
+        self.holdings
     }
 }

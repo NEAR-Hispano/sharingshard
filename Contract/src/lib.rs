@@ -18,8 +18,9 @@ impl Contract {
             experience: LookupMap::new(b"m"),
             exp_by_topic: LookupMap::new(b"c"),
             n_exp: 0,
-            ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
-            fee: 1.1
+            holdings: 0.0,
+            // ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
+            fee: 0.1
         }
     }
 
@@ -119,7 +120,7 @@ mod tests {
             "exp name".to_string(),
             "exp description".to_string(),
             "url".to_string(),
-            100.0,
+            // 100.0,
             "moment".to_string(),
             100,
             150,
