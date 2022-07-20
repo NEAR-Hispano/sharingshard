@@ -135,4 +135,8 @@ impl Contract {
     pub fn get_holdings(&self) ->f64 {
         self.holdings
     }
+
+    pub fn get_earnings(&self) ->f64 {
+        self.earnings
+    }
 }

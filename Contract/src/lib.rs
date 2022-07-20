@@ -19,7 +19,8 @@ impl Contract {
             exp_by_topic: LookupMap::new(b"c"),
             n_exp: 0,
             holdings: 0.0,
-            // ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
+            earnings: 0.0,
+            ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
             fee: 0.1
         }
     }

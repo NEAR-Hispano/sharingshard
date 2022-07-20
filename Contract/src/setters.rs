@@ -38,7 +38,6 @@ impl Contract {
         experience_name: String,
         description: String,
         url: String,
-        // reward: f64,
         moment: String,
         time: u16,
         expire_date: i64,
@@ -46,17 +45,11 @@ impl Contract {
         self.verify_user(env::signer_account_id());
         let mut stat = Status::InProcess;
         let mut reward = 0.0;
-        //protect deposit to be bigger
         if env::attached_deposit() > 0 {
-            assert!(env::attached_deposit() >= YOCTO_NEAR, "Wrong amount of NEARs");
-            // let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
-            // Promise::new(self.ss_wallet.clone()).transfer(trans);
-            // let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
-            // if diff > SEND_FUNDS{
-                // Promise::new(env::signer_account_id()).transfer(diff);
-            // }
+            assert!(env::attached_deposit() >= YOCTO_NEAR, "Not enough NEARs");
             reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
             self.holdings += reward;
+            self.earnings += (env::attached_deposit() / YOCTO_NEAR) as f64 - reward;
             stat = Status::Active;
         }
         self.n_exp += 1;
@@ -121,6 +114,7 @@ impl Contract {
     pub fn set_moment_comment(&mut self, video_n: u128, comment: String) {
         self.verify_exp(video_n.clone());
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
+        self.verify_exp_status(video_n.clone(), Status::InProcess);
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.moment = comment;
         self.experience.insert(&video_n.clone(), &exp);
@@ -129,6 +123,7 @@ impl Contract {
     pub fn set_moment_time(&mut self, video_n: u128, time: u16) {
         self.verify_exp(video_n.clone());
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
+        self.verify_exp_status(video_n.clone(), Status::InProcess);
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.time = time;
         self.experience.insert(&video_n.clone(), &exp);
@@ -137,6 +132,7 @@ impl Contract {
     pub fn set_experience_description(&mut self, video_n: u128, description: String) {
         self.verify_exp(video_n.clone());
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
+        self.verify_exp_status(video_n.clone(), Status::InProcess);
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.description = description;
         self.experience.insert(&video_n.clone(), &exp);
@@ -145,8 +141,7 @@ impl Contract {
     pub fn set_experience_expire_date(&mut self, video_n: u128, date: i64) {
         self.verify_exp(video_n.clone());
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
-        assert_eq!(self.experience.get(&video_n.clone()).unwrap().status,
-        Status::InProcess, "Experience not in process");
+        self.verify_exp_status(video_n.clone(), Status::InProcess);
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         exp.exp_date = date;
         self.experience.insert(&video_n.clone(), &exp);
@@ -184,6 +179,11 @@ impl Contract {
         self.fee = fee / 100.0;
     }
 
+    pub fn change_earnings_wallet(&mut self, wallet: AccountId) {
+        assert_eq!(env::signer_account_id(), env::current_account_id(), "You are not the owner");
+        self.ss_wallet = wallet;
+    }
+
 /*
 ** Transactions
 */
@@ -203,7 +203,6 @@ impl Contract {
         let mut exp = self.experience.get(&experience_number.clone()).unwrap();
         exp.status = Status::Closed;
         self.holdings -= exp.reward;
-        exp.reward = 0.0;
         exp.winner = wallet.clone().to_string();
         self.experience.insert(&experience_number.clone() , &exp);
     }
@@ -215,20 +214,22 @@ impl Contract {
         assert_eq!(self.experience.get(&video_n.clone()).unwrap().status,
         Status::InProcess, "Experience already activated");
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
-        // let reward = self.experience.get(&video_n.clone()).unwrap().reward.clone();
-        //protect deposit to be bigger
-        assert!(env::attached_deposit() >= YOCTO_NEAR, "Not enough tokens");
+        assert!(env::attached_deposit() >= YOCTO_NEAR, "Not enough NEARs");
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         let reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
         self.holdings += reward;
+        self.earnings += (env::attached_deposit() / YOCTO_NEAR) as f64 - reward;
         exp.status = Status::Active;
         exp.reward = reward;
         self.experience.insert(&video_n.clone(), &exp);
-        // let trans = ((reward * (self.fee - 1.0))) as u128 * YOCTO_NEAR;
-        // Promise::new(self.ss_wallet.clone()).transfer(trans);
-        // let diff = env::attached_deposit() - ((reward * self.fee) as u128 * YOCTO_NEAR);
-        // if diff > SEND_FUNDS{
-        //     Promise::new(env::signer_account_id()).transfer(diff);
-        // }
+    }
+
+    pub fn take_out_earnings(&mut self) {
+        assert_eq!(env::signer_account_id(), env::current_account_id(), "You are not the owner");
+        if self.earnings < 1.0 {
+            panic!("Not enough earnings to withraw");
+        }
+        Promise::new(self.ss_wallet.clone()).transfer(self.earnings as u128 * YOCTO_NEAR);
+        self.earnings = 0.0;
     }
 }
