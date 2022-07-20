@@ -26,7 +26,7 @@ Initializing contract:
 
 Add new user:
 
-`near call <CONTRACT OWNER WALLET> set_user --args '{"wallet": "<USER WALLET>", "n": "<USER NAME>", "disc": "<USER DIRCORD>", "mail": "<USER EMAIL>", "interests": u8}' --accountId <CALLER WALLET>`
+`near call <CONTRACT OWNER WALLET> set_user --args '{"name": "<USER NAME>", "discord": "<USER DIRCORD>", "email": "<USER EMAIL>", "interests": u8}' --accountId <CALLER WALLET>`
 
 
 Change user discord:
@@ -51,7 +51,7 @@ Change user name:
 
 Add new experience (returns experience's code number):
 
-`near call <CONTRACT OWNER WALLET> set_experience --args '{"experience_name": "<NAME>", "description": "<EXPERIENCE DESCRIPTION>", "url": "<VIDEO URL>", "reward": f64, "moment": "<COMMENT>", "time": u16, "expire_date": i64, "topic": u8}' --accountId <CALLER WALLET>`
+`near call <CONTRACT OWNER WALLET> set_experience --args '{"experience_name": "<NAME>", "description": "<EXPERIENCE DESCRIPTION>", "url": "<VIDEO URL>", "moment": "<COMMENT>", "time": u16, "expire_date": i64, "topic": u8}' --accountId <CALLER WALLET>`
 optional: `--deposit <NEARS>`
 
 
@@ -77,7 +77,18 @@ Change experience expire date:
 
 Add PoV to experience:
 
-`near call <CONTRACT OWNER WALLET> set_pov --args '{"video_n": u128, "wallet": "<WALLET OF POV GIVER>", "pov": "<COMMENT>"}' --accountId <CALLER WALLET>`
+`near call <CONTRACT OWNER WALLET> set_pov --args '{"video_n": u128, "pov": "<COMMENT>", date: i64}' --accountId <CALLER WALLET>`
+
+
+Change fee (for contract owner, fee between 0 % - 20 %):
+
+`near call <CONTRACT OWNER WALLET> set_fee --args '{"fee": f64}' --accountId <CONTRACT OWNER WALLET>`
+
+
+Change wallet for earnings (for contract owner):
+
+`near call <CONTRACT OWNER WALLET> change_earnings_wallet --args '{"wallet": "<NEW WALLET>"}' --accountId <CONTRACT OWNER WALLET>`
+
 
 *************
 ** Getters **
@@ -192,6 +203,45 @@ Get total of experiences in the contract:
 `near view <CONTRACT OWNER WALLET> get_number_of_experiences --accountId <CALLER WALLET>`
 
 
+Get the % of fee:
+
+`near view <CONTRACT OWNER WALLET> get_fee`
+
+
+Get list of all users (returns a vector):
+
+`near view <CONTRACT OWNER WALLET> get_list_of_users`
+
+
+Get winner:
+
+`near view <CONTRACT OWNER WALLET> get_winner --args '{"video_n": u128}'`
+
+
+Get holdings:
+
+`near view <CONTRACT OWNER WALLET> get_holdings`
+
+
+Get earnings:
+
+`near view <CONTRACT OWNER WALLET> get_earnings`
+
+
+***
+** Deleters
+***
+
+Delete an experience that is still "InProcess":
+
+`near call <CONTRACT> delete_experience --args '{"video_n": u128}'`
+
+
+Delete a PoV from an experience:
+
+`near call <CONTRACT> delete_pov --args '{"video_n": u128}'`
+
+
 ***
 ** Transfer Tokens **
 ***
@@ -204,3 +254,8 @@ Activate an experience:
 Pay reward to best PoV:
 
 `near call <CONTRACT> pay_reward --args '{"experience_number": u128, "wallet": "<BEST POV WALLET>"}' --accountId <CALLER WALLET>`
+
+
+Send earnings to earnings wallet (for contract owner):
+
+`near call <CONTRACT OWNER WALLET> take_out_earnings --accountId <CONTRACT OWNER WALLET>`
