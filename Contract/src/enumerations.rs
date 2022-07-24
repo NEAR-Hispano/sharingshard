@@ -139,4 +139,13 @@ impl Contract {
     pub fn get_earnings(&self) ->f64 {
         self.earnings
     }
+
+    pub fn user_exist(&self, wallet: AccountId) ->bool {
+        if self.users.get(&wallet) == None {
+            false
+        }
+        else {
+            true
+        }
+    }
 }
