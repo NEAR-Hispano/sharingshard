@@ -30,13 +30,13 @@ impl Contract {
     #[private]
     pub fn new(wallet: AccountId, fee: f64) -> Self {
         if env::state_read::<Self>().is_none() != true{
-            env::panic_str("Already initialized");
+            env::panic_str("<<<Already initialized>>>");
         }
         if env::is_valid_account_id(wallet.as_bytes()) == false {
-            env::panic_str("Is not a valid account");
+            env::panic_str("<<<Is not a valid account>>>");
         }
         if (fee > 20.0) || (fee < 0.0) {
-            env::panic_str("Fee must be [0.0, 20.0]");
+            env::panic_str("<<<Fee must be [0.0, 20.0]>>>");
         }
         Self{
             users: UnorderedMap::new(b"a"),
@@ -73,7 +73,7 @@ impl Contract {
         self.verify_user(user.clone());
         self.verify_exp_status(video_n.clone(), Status::Active);
         if self.experience.get(&video_n.clone()).unwrap().pov.get(&user.clone()) != None {
-            env::panic_str("User has not given a pov for this experience");
+            env::panic_str("<<<User has not given a pov for this experience>>>");
         }
         self.experience.get(&video_n.clone()).unwrap().pov.remove(&user.clone());
         let it = self.users.get(&user.clone()).unwrap().pov_exp.to_vec();
@@ -88,25 +88,25 @@ impl Contract {
 */
     fn verify_exp(&self, video_n: u128) {
         if self.experience.contains_key(&video_n.clone()) == false {
-            env::panic_str("Experience does not exist");
+            env::panic_str("<<<Experience does not exist>>>");
         }
     }
 
     fn verify_exp_owner(&self, video_n: u128, wallet: AccountId) {
         if self.experience.get(&video_n.clone()).unwrap().owner != wallet {
-            env::panic_str("You are not the owner of the experience");
+            env::panic_str("<<<You are not the owner of the experience>>>");
         }
     }
 
     fn verify_exp_status(&self, video_n: u128, status: Status) {
         self.verify_exp(video_n.clone());
         let exp = self.experience.get(&video_n.clone()).unwrap().status;
-        assert_eq!(exp, status, "Experience number {} not {:?}", video_n, status);
+        assert_eq!(exp, status, "<<<Experience number {} not {:?}>>>", video_n, status);
     }
 
     fn verify_user(&self, wallet: AccountId) {
         if self.users.get(&wallet.clone()) == None {
-            env::panic_str("No user for this wallet");
+            env::panic_str("<<<No user for this wallet>>>");
         }
     }
 }

@@ -22,7 +22,7 @@ impl Contract {
         interests: u8) {
         let wallet = env::signer_account_id();
         if self.users.get(&wallet.clone()) != None {
-            env::panic_str("User already exists");
+            env::panic_str("<<<User already exists>>>");
         }
         self.users.insert(&wallet.clone(), &User{
             name: name,
@@ -49,7 +49,7 @@ impl Contract {
         let mut reward = 0.0;
         if env::attached_deposit() > 0 {
             if env::attached_deposit() < YOCTO_NEAR {
-                env::panic_str("Not enough NEARs");
+                env::panic_str("<<<Not enough NEARs>>>");
             }
             reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
             self.holdings += reward;
@@ -156,11 +156,11 @@ impl Contract {
         self.verify_exp_status(video_n.clone(), Status::Active);
         self.verify_user(wallet.clone());
         if self.experience.get(&video_n.clone()).unwrap().owner.clone() == wallet.clone() {
-            env::panic_str("You can't put a pov in your own experience");
+            env::panic_str("<<<You can't put a pov in your own experience>>>");
         }
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         if exp.pov.get(&wallet.clone()) != None {
-            env::panic_str("User has already given a pov for this experience");
+            env::panic_str("<<<User has already given a pov for this experience>>>");
         }
         exp.pov.insert(wallet.clone(), pov);
         self.experience.insert(&video_n.clone(), &exp);
@@ -173,10 +173,10 @@ impl Contract {
     #[private]
     pub fn set_fee(&mut self, fee: f64) {
         if env::current_account_id() != env::signer_account_id() {
-            env::panic_str("Signer is not the owner of the contract");
+            env::panic_str("<<<Signer is not the owner of the contract>>>");
         }
         if (fee < 0.0) || (fee > 20.0) {
-            env::panic_str("Fee out of range");
+            env::panic_str("<<<Fee out of range>>>");
         }
         self.fee = fee / 100.0;
     }
@@ -184,10 +184,10 @@ impl Contract {
     #[private]
     pub fn change_earnings_wallet(&mut self, wallet: AccountId) {
         if env::signer_account_id() != env::current_account_id() {
-            env::panic_str("You are not the owner");
+            env::panic_str("<<<You are not the owner>>>");
         }
         if env::is_valid_account_id(wallet.as_bytes()) != true {
-            env::panic_str("Is not a valid account");
+            env::panic_str("<<<Is not a valid account>>>");
         }
         self.ss_wallet = wallet;
     }
@@ -200,10 +200,10 @@ impl Contract {
         let caller = env::signer_account_id();
         self.verify_exp_owner(experience_number.clone(), caller.clone());
         if self.get_exp_status(experience_number.clone()) != Status::Active {
-            env::panic_str("Experience not active");
+            env::panic_str("<<<Experience not active>>>");
         }
         if self.experience.get(&experience_number.clone()).unwrap().pov.get(&wallet.clone()) == None {
-            env::panic_str("This wallet did not give a PoV for this experience");
+            env::panic_str("<<<This wallet did not give a PoV for this experience>>>");
         }
         Promise::new(wallet.clone()).transfer(
             (self.get_reward(experience_number.clone()) as Balance)
@@ -220,11 +220,11 @@ impl Contract {
         self.verify_user(env::signer_account_id());
         self.verify_exp(video_n.clone());
         if self.experience.get(&video_n.clone()).unwrap().status != Status::InProcess {
-            env::panic_str("Experience already activated");
+            env::panic_str("<<<Experience already activated>>>");
         }
         self.verify_exp_owner(video_n.clone(), env::signer_account_id());
         if env::attached_deposit() < YOCTO_NEAR {
-            env::panic_str("Not enough NEARs");
+            env::panic_str("<<<Not enough NEARs>>>");
         }
         let mut exp = self.experience.get(&video_n.clone()).unwrap();
         let reward = (env::attached_deposit() / YOCTO_NEAR) as f64 * (1.0 - self.fee);
@@ -238,10 +238,10 @@ impl Contract {
     #[private]
     pub fn take_out_earnings(&mut self) {
         if env::signer_account_id() != env::current_account_id() {
-            env::panic_str("You are not the owner");
+            env::panic_str("<<<You are not the owner>>>");
         }
         if self.earnings < 1.0 {
-            env::panic_str("Not enough earnings to withraw");
+            env::panic_str("<<<Not enough earnings to withraw>>>");
         }
         Promise::new(self.ss_wallet.clone()).transfer(self.earnings as u128 * YOCTO_NEAR);
         self.earnings = 0.0;
