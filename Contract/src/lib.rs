@@ -8,12 +8,10 @@ use near_sdk::collections::{LookupMap, UnorderedMap};
 /*
 ** Initialization
 */
-#[near_bindgen]
-impl Contract {
-    #[init]
-    pub fn new() -> Self {
-        assert!(env::state_read::<Self>().is_none(), "Already initialized");
-        Self{
+
+impl Default for Contract {
+    fn default() ->Self {
+        Self {
             users: UnorderedMap::new(b"a"),
             experience: LookupMap::new(b"m"),
             exp_by_topic: LookupMap::new(b"c"),
@@ -22,6 +20,33 @@ impl Contract {
             earnings: 0.0,
             ss_wallet: "jciglesias.testnet".parse().unwrap(), //to change wallet
             fee: 0.1
+        }
+    }
+}
+
+#[near_bindgen]
+impl Contract {
+    #[init]
+    #[private]
+    pub fn new(wallet: AccountId, fee: f64) -> Self {
+        if env::state_read::<Self>().is_none() != true{
+            env::panic_str("<<<Already initialized>>>");
+        }
+        if env::is_valid_account_id(wallet.as_bytes()) == false {
+            env::panic_str("<<<Is not a valid account>>>");
+        }
+        if (fee > 20.0) || (fee < 0.0) {
+            env::panic_str("<<<Fee must be [0.0, 20.0]>>>");
+        }
+        Self{
+            users: UnorderedMap::new(b"a"),
+            experience: LookupMap::new(b"m"),
+            exp_by_topic: LookupMap::new(b"c"),
+            n_exp: 0,
+            holdings: 0.0,
+            earnings: 0.0,
+            ss_wallet: wallet,
+            fee: fee
         }
     }
 
@@ -47,8 +72,9 @@ impl Contract {
         let user = env::signer_account_id();
         self.verify_user(user.clone());
         self.verify_exp_status(video_n.clone(), Status::Active);
-        assert_ne!(self.experience.get(&video_n.clone()).unwrap().pov.get(&user.clone()), None,
-        "User has not given a pov for this experience");
+        if self.experience.get(&video_n.clone()).unwrap().pov.get(&user.clone()) != None {
+            env::panic_str("<<<User has not given a pov for this experience>>>");
+        }
         self.experience.get(&video_n.clone()).unwrap().pov.remove(&user.clone());
         let it = self.users.get(&user.clone()).unwrap().pov_exp.to_vec();
         let mut i = 0;
@@ -61,23 +87,27 @@ impl Contract {
 ** Verifiers
 */
     fn verify_exp(&self, video_n: u128) {
-        assert!(self.experience.contains_key(&video_n.clone()),
-        "Experience number {} does not exist", video_n);
+        if self.experience.contains_key(&video_n.clone()) == false {
+            env::panic_str("<<<Experience does not exist>>>");
+        }
     }
 
     fn verify_exp_owner(&self, video_n: u128, wallet: AccountId) {
-        assert_eq!(self.experience.get(&video_n.clone()).unwrap().owner.clone(),
-        wallet.clone(), "{} is not the owner of the experience", wallet.clone());
+        if self.experience.get(&video_n.clone()).unwrap().owner != wallet {
+            env::panic_str("<<<You are not the owner of the experience>>>");
+        }
     }
 
     fn verify_exp_status(&self, video_n: u128, status: Status) {
         self.verify_exp(video_n.clone());
         let exp = self.experience.get(&video_n.clone()).unwrap().status;
-        assert_eq!(exp, status, "Experience number {} not {:?}", video_n, status);
+        assert_eq!(exp, status, "<<<Experience number {} not {:?}>>>", video_n, status);
     }
 
     fn verify_user(&self, wallet: AccountId) {
-        assert_ne!(self.users.get(&wallet.clone()), None,"No user for this wallet: {}", wallet);
+        if self.users.get(&wallet.clone()) == None {
+            env::panic_str("<<<No user for this wallet>>>");
+        }
     }
 }
 
@@ -136,7 +166,7 @@ mod tests {
     #[test]
     fn create_users() {
         let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
+        let mut contract = Contract::new("jane.testnet".parse().unwrap(), 20.0);
         context.signer_account_id = "pepe.testnet".parse().unwrap();
         testing_env!(context.clone());
         set_new_user(&mut contract, "pepe".to_string());
@@ -148,7 +178,7 @@ mod tests {
     #[test]
     fn create_experience() {
         let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
+        let mut contract = Contract::new("jane.testnet".parse().unwrap(), 1.0);
         context.signer_account_id = "pepe.testnet".parse().unwrap();
         testing_env!(context.clone());
         set_new_user(&mut contract, "pepe".to_string());
@@ -161,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_activate_exp() {
-        let mut contract = Contract::new();
+        let mut contract = Contract::new("jane.testnet".parse().unwrap(), 1.0);
         let context = get_context("pepe.testnet", 110 * YOCTO_NEAR, 0);
         testing_env!(context);
         set_new_user(&mut contract, "pepe".to_string());
@@ -175,7 +205,7 @@ mod tests {
     #[test]
     fn create_pov() {
         let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
+        let mut contract = Contract::new("jane.testnet".parse().unwrap(), 1.0);
         context.signer_account_id = "pepe.testnet".parse().unwrap();
         context.attached_deposit = (100.0 * contract.fee) as u128 * YOCTO_NEAR;
         testing_env!(context.clone());
@@ -200,7 +230,7 @@ mod tests {
     #[test]
     fn test_set_exp_expire_date() {
         let mut context = get_context("test.tesnet", 0, 0);
-        let mut contract = Contract::new();
+        let mut contract = Contract::new("jane.testnet".parse().unwrap(), 1.0);
         context.signer_account_id = "pepe.testnet".parse().unwrap();
         testing_env!(context.clone());
         set_new_user(&mut contract, "pepe".to_string());

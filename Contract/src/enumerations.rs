@@ -77,7 +77,13 @@ impl Contract {
     }
 
     pub fn get_exp_by_topic(&self, topic: u8) ->Vec<u128> {
-        self.exp_by_topic.get(&topic).unwrap()
+        let vec = self.exp_by_topic.get(&topic);
+        if vec == None {
+            Vec::new()
+        }
+        else {
+            vec.unwrap()
+        }
     }
 
     pub fn get_user_name(&self, wallet: AccountId) ->String {
@@ -129,6 +135,7 @@ impl Contract {
     }
 
     pub fn get_winner(&self, video_n: u128) ->String {
+        self.verify_exp(video_n);
         self.experience.get(&video_n).unwrap().winner
     }
 
@@ -138,5 +145,14 @@ impl Contract {
 
     pub fn get_earnings(&self) ->f64 {
         self.earnings
+    }
+
+    pub fn user_exist(&self, wallet: AccountId) ->bool {
+        if self.users.get(&wallet) == None {
+            false
+        }
+        else {
+            true
+        }
     }
 }

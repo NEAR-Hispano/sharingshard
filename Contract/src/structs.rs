@@ -1,4 +1,4 @@
-use near_sdk::{near_bindgen, AccountId, PanicOnDefault};
+use near_sdk::{near_bindgen, AccountId};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap};
 use std::collections::HashMap;
@@ -47,7 +47,7 @@ pub struct User{
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+#[derive(BorshDeserialize, BorshSerialize)]
 pub struct Contract{
     pub users: UnorderedMap<AccountId, User>,
     pub experience: LookupMap<u128, Experience>,
